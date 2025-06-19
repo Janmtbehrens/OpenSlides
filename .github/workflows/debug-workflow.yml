@@ -6,7 +6,44 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Test actions
-        uses: Janmtbehrens/OpenSlides/dev/actions/build-and-test-service@all-in-one
+      - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
         with:
-          service: auth
+          regex: reusable-github-.*
+        id: regex_match
+
+      - name: Test branch
+        if: ${{ steps.regex_match.outputs.match != '' }}
+        run: echo "Branch worked"
+
+      - name: Checks
+        run: |
+          echo "${{ steps.regex_match.outputs.match }}"
+          echo "reusable-github-*"
+
+      - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
+        with:
+          regex: .*
+        id: regex_match2
+
+      - name: Test branch
+        if: ${{ steps.regex_match2.outputs.match != '' }}
+        run: echo "Branch worked"
+
+      - name: Checks
+        run: |
+          echo "${{ steps.regex_match2.outputs.match }}"
+          echo "reusable-github-*"
+      
+      - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
+        with:
+          regex: reusable-github-actions
+        id: regex_match3
+
+      - name: Test branch
+        if: ${{ steps.regex_match3.outputs.match != '' }}
+        run: echo "Branch worked"
+
+      - name: Checks
+        run: |
+          echo "${{ steps.regex_match3.outputs.match }}"
+          echo "reusable-github-*"
