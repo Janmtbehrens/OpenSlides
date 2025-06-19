@@ -9,11 +9,11 @@ on:
         required: true
         type: string
       gh_app_ID:
-        type: string
+        required: true
       gh_app_installation_ID:
-        type: string
+        required: true
       gh_app_secret_key:
-        type: string
+        required: true
 
 jobs:
   project-issue:
