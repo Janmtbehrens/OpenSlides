@@ -9,13 +9,10 @@ on:
         required: true
         type: string
       gh_app_ID:
-        required: true
         type: string
       gh_app_installation_ID:
-        required: true
         type: string
       gh_app_secret_key:
-        required: true
         type: string
 
 jobs:
