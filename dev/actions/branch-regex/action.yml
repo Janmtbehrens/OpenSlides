@@ -33,5 +33,5 @@ runs:
       
       - name: Test outputs
         shell: bash
-        run: echo "${{ steps.test.outputs.match }}""
+        run: echo "${{ steps.test.outputs.match }}"
 
