@@ -1,0 +1,72 @@
+name: Cherry pick staging PRs merged into main
+
+description: 'Create PR against staging branch'
+
+inputs:
+  branches:  
+    description: 'Regex for the branch this workflow should trigger on'
+    required: true
+
+runs:
+  using: "composite"
+  runs-on: ubuntu-latest
+
+  steps:
+      # https://stackoverflow.com/questions/58033366/how-to-get-the-current-branch-within-github-actions
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Checkout main
+        if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Fetch and checkout latest staging branch
+        if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+        run: |
+          branch=$(git ls-remote --heads origin 'staging/*' | awk 'gsub(".*refs/heads/","")' | sort -V | tail -1)
+          git fetch origin $branch
+          git checkout $branch
+
+      - name: Set git credentials
+        if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+        run: |
+          git config --global user.name openslides-automation
+          git config --global user.email openslides-automation@users.noreply.github.com
+
+      - name: Cherry-pick new commit
+        if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+        id: cherry-pick
+        run: |
+          git fetch origin
+          # -m 1 to also be able to cherry-pick merge commits
+          git cherry-pick -m 1 ${{ github.sha }} || {
+            echo "error=1" >> $GITHUB_OUTPUT
+            git add .
+            git cherry-pick --continue
+          }
+
+      - name: Generate access token
+        if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+        uses: tibdex/github-app-token@v2
+        id: generate-token
+        with:
+          app_id: ${{ secrets.AUTOMATION_APP_ID }}
+          private_key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+
+      - name: Create or update PR
+        if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          branch: apply/commit-${{ github.sha }}
+          delete-branch: true
+          title: "[Cherry-Pick] ${{ github.event.pull_request.title }}"
+          body: "Triggered by commit [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\n\n${{ steps.cherry-pick.outputs.error && 'There were conflicts during the cherry-pick. These were commited without any resolving. Please resolve them manually and push the result to this branch before merging.' || 'The cherry-pick was successful without any conflicts. You should be able to simply merge this PR.' }}"
+          reviewers: ${{ github.event.pull_request.user.login }}
+          assignees: ${{ github.event.pull_request.user.login }}
+          labels: picked-to-staging
