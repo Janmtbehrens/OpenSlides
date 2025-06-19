@@ -2,10 +2,12 @@ name: Cherry pick staging PRs merged into main
 
 description: 'Create PR against staging branch'
 
-inputs:
-  branches:  
-    description: 'Regex for the branch this workflow should trigger on'
-    required: true
+on:
+  workflow_call:
+    inputs:
+      branches:  
+        description: 'Regex for the branch this workflow should trigger on'
+        required: true
 
 runs:
   using: "composite"

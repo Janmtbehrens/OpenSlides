@@ -1,4 +1,4 @@
-on: deployment
+on: commit
 
 jobs:
   test-job:

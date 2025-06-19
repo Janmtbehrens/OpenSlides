@@ -1,11 +1,12 @@
 name: 'Close Issues'
 
 description: 'Closes Issues'
-
-inputs:
-  branches:  
-    description: 'Regex for the branch this workflow should trigger on'
-    required: true
+on:
+  workflow_call:
+    inputs:
+      branches:  
+        description: 'Regex for the branch this workflow should trigger on'
+        required: true
 
 runs:
   using: "composite"
