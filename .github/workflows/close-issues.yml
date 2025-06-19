@@ -5,7 +5,7 @@ description: 'Closes Issues'
 on:
   workflow_call:
     inputs:
-      branches:  
+      branch_regex:  
         description: 'Regex for the branch this workflow should trigger on'
         required: true
 
@@ -15,21 +15,20 @@ jobs:
       runs-on: ubuntu-latest
 
       steps:
-          # https://stackoverflow.com/questions/58033366/how-to-get-the-current-branch-within-github-actions
-          - name: Extract branch name
-            shell: bash
-            run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+          - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
+            with:
+              regex: ${{ inputs.branch_regex }}
             id: extract_branch
 
           - name: Generate access token
             uses: tibdex/github-app-token@v2
-            if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
             id: generate-token
             with:
               app_id: ${{ secrets.AUTOMATION_APP_ID }}
               private_key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
 
-          - if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+          - if: ${{ steps.extract_branch.outputs.branch != ''}}
             uses: octokit/graphql-action@v2.x
             id: get-issues
             env:
@@ -56,7 +55,7 @@ jobs:
                 number: ${{ github.event.pull_request.number }}
 
           - name: Close issues
-            if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
             env:
               GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
             run: |

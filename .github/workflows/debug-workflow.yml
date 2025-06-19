@@ -1,4 +1,4 @@
-on: push
+on: fork
 
 jobs:
   test-job:
@@ -18,32 +18,4 @@ jobs:
       - name: Checks
         run: |
           echo "${{ steps.regex_match.outputs.match }}"
-          echo "reusable-github-*"
-
-      - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
-        with:
-          regex: asfasfasf.*
-        id: regex_match2
-
-      - name: Test branch
-        if: ${{ steps.regex_match2.outputs.match != '' }}
-        run: echo "Branch worked"
-
-      - name: Checks
-        run: |
-          echo "${{ steps.regex_match2.outputs.match }}"
-          echo "reusable-github-*"
-      
-      - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
-        with:
-          regex: reusable-github-actions
-        id: regex_match3
-
-      - name: Test branch
-        if: ${{ steps.regex_match3.outputs.match != '' }}
-        run: echo "Branch worked"
-
-      - name: Checks
-        run: |
-          echo "${{ steps.regex_match3.outputs.match }}"
           echo "reusable-github-*"

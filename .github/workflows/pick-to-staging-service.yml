@@ -5,7 +5,7 @@ description: 'Create PR against staging branch'
 on:
   workflow_call:
     inputs:
-      branches:  
+      branch_regex:  
         description: 'Regex for the branch this workflow should trigger on'
         required: true
 
@@ -15,34 +15,33 @@ jobs:
       runs-on: ubuntu-latest
 
       steps:
-          # https://stackoverflow.com/questions/58033366/how-to-get-the-current-branch-within-github-actions
-          - name: Extract branch name
-            shell: bash
-            run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+          - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
+            with:
+              regex: ${{ inputs.branch_regex }}
             id: extract_branch
 
           - name: Checkout main
-            if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
             uses: actions/checkout@v4
             with:
               ref: main
               fetch-depth: 2
 
           - name: Fetch and checkout latest staging branch
-            if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
             run: |
               branch=$(git ls-remote --heads origin 'staging/*' | awk 'gsub(".*refs/heads/","")' | sort -V | tail -1)
               git fetch origin $branch
               git checkout $branch
 
           - name: Set git credentials
-            if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
             run: |
               git config --global user.name openslides-automation
               git config --global user.email openslides-automation@users.noreply.github.com
 
           - name: Cherry-pick new commit
-            if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
             id: cherry-pick
             run: |
               git fetch origin
@@ -54,7 +53,7 @@ jobs:
               }
 
           - name: Generate access token
-            if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
             uses: tibdex/github-app-token@v2
             id: generate-token
             with:
@@ -62,7 +61,7 @@ jobs:
               private_key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
 
           - name: Create or update PR
-            if: startsWith('${{ steps.extract_branch.outputs.branch}}', '${{ inputs.branches }}')
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
             uses: peter-evans/create-pull-request@v7
             with:
               token: ${{ steps.generate-token.outputs.token }}
