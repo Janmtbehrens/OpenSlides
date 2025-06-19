@@ -24,9 +24,14 @@ runs:
         id: regex_match
         with:
           text: ${{ steps.extract_branch.outputs.branch}}
-          regex: 'reusable-github-*'
+          regex: '${{ inputs.regex }}'
       
       - name: Export Regex Match
         shell: bash
         run: echo "match=${{ steps.regex_match.outputs.match }}" >> $GITHUB_OUTPUT
+        id: test
+      
+      - name: Test outputs
+        shell: bash
+        run: echo "${{ steps.test.outputs.match }}""
 

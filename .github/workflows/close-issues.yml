@@ -11,7 +11,6 @@ on:
 
 jobs:
   workflow_call:
-    runs:
       using: "composite"
       runs-on: ubuntu-latest
 
