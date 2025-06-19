@@ -22,7 +22,7 @@ jobs:
 
       - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
         with:
-          regex: .*
+          regex: asfasfasf.*
         id: regex_match2
 
       - name: Test branch
