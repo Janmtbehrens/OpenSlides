@@ -8,6 +8,7 @@ inputs:
 outputs:
   match:
     description: 'Matched pattern. Empty if not matched'
+    value: ${{ steps.regex_export.outputs.match }}
 
 runs:
   using: "composite"
@@ -29,9 +30,9 @@ runs:
       - name: Export Regex Match
         shell: bash
         run: echo "match=${{ steps.regex_match.outputs.match }}" >> $GITHUB_OUTPUT
-        id: test
+        id: regex_export
       
       - name: Test outputs
         shell: bash
-        run: echo "${{ steps.test.outputs.match }}"
+        run: echo "${{ steps.regex_export.outputs.match }}"
 
