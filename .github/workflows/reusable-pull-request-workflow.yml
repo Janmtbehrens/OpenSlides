@@ -30,7 +30,7 @@ jobs:
     with:
       branches: "feature/.*"
   
-  create-pr-for-staging:
+  create-pr-for-staging-service:
     name: Create PR for Staging (Service)
     if: |
       ${{  is_main_branch != true && 
@@ -43,7 +43,7 @@ jobs:
       branches: "main"
   
 
-  create-pr-for-staging:
+  create-pr-for-staging-main:
     name: Create PR for Staging (Main)
     if: |
       ${{  is_main_branch == true && 
