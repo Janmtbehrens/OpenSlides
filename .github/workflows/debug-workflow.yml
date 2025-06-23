@@ -1,4 +1,4 @@
-on: push
+on: fork
 
 jobs:
   test-job:
@@ -6,7 +6,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Test
-        run: echo "Hey"
-      - name: Test actions
-        uses: Janmtbehrens/OpenSlides/dev/actions/test-submodule@main
+      - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
+        with:
+          regex: reusable-github-.*
+        id: regex_match
+
+      - name: Test branch
+        if: ${{ steps.regex_match.outputs.match != '' }}
+        run: echo "Branch worked"
+
+      - name: Checks
+        run: |
+          echo "${{ steps.regex_match.outputs.match }}"
+          echo "reusable-github-*"

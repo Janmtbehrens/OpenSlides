@@ -1,0 +1,38 @@
+name: 'Current Branch Regex Check'
+description: 'Checks if current branch matches given regex.'
+
+inputs:
+  regex:  
+    description: 'Regex pattern to be analysed'
+    required: true
+outputs:
+  match:
+    description: 'Matched pattern. Empty if not matched'
+    value: ${{ steps.regex_export.outputs.match }}
+
+runs:
+  using: "composite"
+  steps:
+      # https://stackoverflow.com/questions/58033366/how-to-get-the-current-branch-within-github-actions
+      - name: Extract Branch Name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      # https://github.com/actions-ecosystem/action-regex-match
+      - name: Regex Check
+        uses: actions-ecosystem/action-regex-match@v2
+        id: regex_match
+        with:
+          text: ${{ steps.extract_branch.outputs.branch}}
+          regex: '${{ inputs.regex }}'
+      
+      - name: Export Regex Match
+        shell: bash
+        run: echo "match=${{ steps.regex_match.outputs.match }}" >> $GITHUB_OUTPUT
+        id: regex_export
+      
+      - name: Test outputs
+        shell: bash
+        run: echo "${{ steps.regex_export.outputs.match }}"
+

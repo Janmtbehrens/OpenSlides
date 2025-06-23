@@ -1,0 +1,91 @@
+name: 'Pull Request Actions'
+
+description: 'Various PR related Actions'
+
+on:
+  workflow_call:
+    inputs:
+      action_type:
+        description: Event Action Type that triggered this workflow. Should be set to github.event.action
+        required: true
+      pull_request_merged:
+        description: Flag for Merge PR. Should be set to github.event.pull_request.merged
+        required: true
+      pull_request_label:
+        description: PR Label. Should be set to github.event.pull_request.labels.*.name
+        required: true
+      pull_request_node:
+        description: PR Node. Should be set to github.event.pull_request.node_id
+        required: true
+      is_main_branch:
+        description: Main repository should behave slightly different from Service Branches. Set this to true, if this Workflow is called from the main repository
+        default: false
+
+jobs:
+  close-issues:
+    name: Close issues
+    if: ${{ is_main_branch != true && inputs.pull_request_merged == true && github.event.branches == "feature/*" }}
+    uses: Janmtbehrens/OpenSlides/.github/workflows/close-issues.yml@reusable-github-actions
+    secrets: inherit
+    with:
+      branches: "feature/.*"
+  
+  create-pr-for-staging-service:
+    name: Create PR for Staging (Service)
+    if: |
+      ${{  is_main_branch != true && 
+      inputs.pull_request_merged == true &&
+      contains(inputs.pull_request_label, 'staging') &&
+      github.event.branches == "main" }}
+    uses: Janmtbehrens/OpenSlides/.github/workflows/pick-to-staging.yml@reusable-github-actions
+    secrets: inherit
+    with:
+      branches: "main"
+  
+
+  create-pr-for-staging-main:
+    name: Create PR for Staging (Main)
+    if: |
+      ${{  is_main_branch == true && 
+      inputs.pull_request_merged == true &&
+      contains(inputs.pull_request_label, 'staging') &&
+      github.event.branches == "main" }}
+    uses: Janmtbehrens/OpenSlides/.github/workflows/pick-to-staging.yml@reusable-github-actions
+    secrets: inherit
+    with:
+      branches: ""
+
+  project-pull-requests:
+    runs-on: ubuntu:latest
+    secrets: inherit
+    steps:
+      - name: Pull request closed (Done on PR closed)
+        if: ${{ inputs.action_type == "closed" }}
+        uses: Janmtbehrens/OpenSlides/dev/actions/project-automation@reusable-github-actions
+        with:
+          resource_node_id: ${{ inputs.pull_request_node }}
+          status_value: "Done"
+          gh_app_ID: ${{ secrets.AUTOMATION_APP_ID }}
+          gh_app_installation_ID: ${{ secrets.AUTOMATION_APP_INSTALLATION_ID }}
+          gh_app_secret_key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+      
+      - name: Pull request opened (WIP on PR opened)
+        if: ${{ inputs.action_type == "opened" || inputs.action_type == "reopened" }}
+        uses: Janmtbehrens/OpenSlides/dev/actions/project-automation@reusable-github-actions
+        with:
+          resource_node_id: ${{ inputs.pull_request_node }}
+          status_value: "Backlog"
+          gh_app_ID: ${{ secrets.AUTOMATION_APP_ID }}
+          gh_app_installation_ID: ${{ secrets.AUTOMATION_APP_INSTALLATION_ID }}
+          gh_app_secret_key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+      
+      - name: Pull request review requested (ReviewIP on PR review_requested)
+        if: ${{ inputs.action_type == "review_requested" }}
+        uses: Janmtbehrens/OpenSlides/dev/actions/project-automation@reusable-github-actions
+        with:
+          resource_node_id: ${{ inputs.pull_request_node }}
+          status_value: "Review in progress"
+          gh_app_ID: ${{ secrets.AUTOMATION_APP_ID }}
+          gh_app_installation_ID: ${{ secrets.AUTOMATION_APP_INSTALLATION_ID }}
+          gh_app_secret_key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+

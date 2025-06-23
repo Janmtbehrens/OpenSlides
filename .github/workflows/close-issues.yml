@@ -1,0 +1,65 @@
+name: 'Close Issues'
+
+description: 'Closes Issues'
+
+on:
+  workflow_call:
+    inputs:
+      branch_regex:  
+        description: 'Regex for the branch this workflow should trigger on'
+        required: true
+
+jobs:
+  workflow_call:
+      using: "composite"
+      runs-on: ubuntu-latest
+
+      steps:
+          - uses: Janmtbehrens/OpenSlides/dev/actions/branch-regex@reusable-github-actions
+            with:
+              regex: ${{ inputs.branch_regex }}
+            id: extract_branch
+
+          - name: Generate access token
+            uses: tibdex/github-app-token@v2
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
+            id: generate-token
+            with:
+              app_id: ${{ secrets.AUTOMATION_APP_ID }}
+              private_key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+
+          - if: ${{ steps.extract_branch.outputs.branch != ''}}
+            uses: octokit/graphql-action@v2.x
+            id: get-issues
+            env:
+              GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+            with:
+              query: |
+                query getLinkedIssues($owner: String!, $name: String!, $number: Int!) {
+                  repository(owner: $owner, name: $name) {
+                    pullRequest(number: $number) {
+                      closingIssuesReferences(first: 100) {
+                        nodes {
+                          number
+                          repository {
+                            nameWithOwner
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              variables: |
+                owner: ${{ github.repository_owner }}
+                name: ${{ github.event.repository.name }}
+                number: ${{ github.event.pull_request.number }}
+
+          - name: Close issues
+            if: ${{ steps.extract_branch.outputs.branch != ''}}
+            env:
+              GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+            run: |
+              issue_data="$(echo '${{ steps.get-issues.outputs.data }}' | jq -r '.repository.pullRequest.closingIssuesReferences.nodes[] | [.number,.repository.nameWithOwner] | @tsv')"
+              echo "$issue_data" | grep -v "^$" | while read number nameWithOwner; do
+                gh issue close "$number" -r "$nameWithOwner"
+              done
