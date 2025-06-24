@@ -37,7 +37,7 @@ OPT_IMAGES=
 
 usage() {
   cat << EOF
-Usage: $(basename ${BASH_SOURCE[0]}) [<options>] <service>...
+Usage: $(basename "${BASH_SOURCE[0]}") [<options>] <service>...
 
 Options:
   -D, --docker-repo  Specify a Docker repository
@@ -58,8 +58,8 @@ fi
 
 shortopt="hr:D:t:"
 longopt="help,docker-repo:,tag:,no-cache,ask-push,yes,images"
-ARGS=$(getopt -o "$shortopt" -l "$longopt" -n "$ME" -- "$@")
-if [ $? -ne 0 ]; then usage; exit 1; fi
+ARGS=$(getopt -o "$shortopt" -l "$longopt" -n "$ME" -- "$@") || { usage; exit 1; }
+
 eval set -- "$ARGS";
 unset ARGS
 
@@ -75,7 +75,7 @@ while true; do
       shift 2
       ;;
     --no-cache)
-      OPTIONS+="--no-cache"
+      OPTIONS+=("--no-cache")
       shift 1
       ;;
     --ask-push)
@@ -96,9 +96,8 @@ while true; do
   esac
 done
 
-SELECTED_TARGETS=($@)
-[[ "${#SELECTED_TARGETS[@]}" -ge 1 ]] || SELECTED_TARGETS=("${DEFAULT_TARGETS[@]}")
-[[ "${SELECTED_TARGETS[@]}" != "all" ]] || SELECTED_TARGETS=("${!TARGETS[@]}")
+SELECTED_TARGETS=("$@")
+if [ "$#" == 0 ]; then SELECTED_TARGETS=("${DEFAULT_TARGETS[@]}"); elif [ "$*" = "all" ]; then SELECTED_TARGETS=("${!TARGETS[@]}"); fi
 
 OPTIONS+=(--build-arg "VERSION=$DOCKER_TAG")
 
@@ -122,7 +121,7 @@ for i in "${SELECTED_TARGETS[@]}"; do
   fi
 
   echo "Building $img..."
-  cd $loc
+  cd "$loc" || exit 1
   {
     printf '{\n'
     printf '\t"service": "%s,\n' "${i}"
@@ -152,7 +151,7 @@ if [[ "${#BUILT_IMAGES[@]}" -ge 1 ]]; then
   printf "\nSuccessfully built images:\n\n"
   for i in "${BUILT_IMAGES[@]}"; do
     read -r img x <<< "$i"
-    printf "  - $img\n"
+    printf "  - %s\n" "$img"
   done
 else
   echo "No images were built."
@@ -161,14 +160,14 @@ fi
 
 [[ -n "$ASK_PUSH" ]] || exit 0
 
-if [ -n $OPT_YES ] || ! hash whiptail > /dev/null 2>&1; then
+if [ -n "$OPT_YES" ] || ! hash whiptail > /dev/null 2>&1; then
   echo
   for i in "${BUILT_IMAGES[@]}"; do
     read -r img x <<< "$i"
-    if [ -n $OPT_YES ]; then
+    if [ -n "$OPT_YES" ]; then
       REPL=y
     else
-      read -p "Push image '$img' to repository? [Y/n] " REPL
+      read -r -p "Push image '$img' to repository? [Y/n] " REPL
     fi
     case "$REPL" in
       N|n|No|no|NO) exit 0;;
@@ -176,12 +175,12 @@ if [ -n $OPT_YES ] || ! hash whiptail > /dev/null 2>&1; then
     esac
   done
 else
-  while read img; do
+  while read -r img; do
     echo "Pushing ${img}."
     docker push "$img"
   done < <( whiptail --title "OpenSlides build script" \
     --checklist "Select images to push to their registry." \
     25 78 16 --separate-output --noitem --clear \
-    ${BUILT_IMAGES[@]} \
+    "${BUILT_IMAGES[@]}" \
     3>&2 2>&1 1>&3 )
 fi

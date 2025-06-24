@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Import OpenSlides utils package
+. "$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../util.sh"
+
 set -ae
 
 ME=$(basename "$0")
@@ -71,46 +74,6 @@ MODES:
 EOF
 }
 
-ask() {
-  local default_reply="$1" reply_opt="[y/N]" blank="y" REPLY=
-  shift; [[ "$default_reply" != y ]] || {
-    reply_opt="[Y/n]"; blank=""
-  }
-
-  read -rp "$@ $reply_opt: "
-  case "$REPLY" in
-    Y|y|Yes|yes|YES|"$blank") return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-# echocmd first echos args in blue on stderr. Then args are treated like a
-# provided command and executed.
-# This allows callers of echocmd to still handle their provided command's stdout
-# as if executed directly.
-echocmd() {
-  echo "${COL_BLUE}$ $@${COL_NORMAL}" >&2
-  "$@"
-  return $?
-}
-
-info() {
-  echo "${COL_GRAY}$@${COL_NORMAL}"
-}
-
-warn() {
-  echo "${COL_YELLOW}[WARN] ${COL_GRAY}$@${COL_NORMAL}" >&2
-}
-
-error() {
-  echo "${COL_RED}[ERROR] ${COL_GRAY}$@${COL_NORMAL}" >&2
-}
-
-abort() {
-  echo "Aborting."
-  exit "$1"
-}
-
 set_remote() {
   REMOTE_NAME=upstream
   git ls-remote --exit-code "$REMOTE_NAME" &>/dev/null ||
@@ -123,7 +86,7 @@ confirm_version() {
   echocmd git fetch "$REMOTE_NAME" "$STABLE_BRANCH_NAME"
   STABLE_VERSION="$(git show "$REMOTE_NAME/$STABLE_BRANCH_NAME:VERSION")"
   info "Guessing staging version from stable version $STABLE_VERSION found in $REMOTE_NAME."
-  STAGING_VERSION="$(echo $STABLE_VERSION | awk -v FS=. -v OFS=. '{$3=$3+1 ; print $0}')"  # 4.N.M -> 4.N.M+1
+  STAGING_VERSION="$(echo "$STABLE_VERSION" | awk -v FS=. -v OFS=. '{$3=$3+1 ; print $0}')"  # 4.N.M -> 4.N.M+1
   # Give the user the opportunity to adjust the calculated staging version
   read -rp "Please confirm the staging version to be used [${STAGING_VERSION}]: "
   case "$REPLY" in
@@ -143,19 +106,19 @@ check_current_branch() {
 
   # If remote branch exists ensure we are up-to-date with it
   [[ "$(git rev-parse --abbrev-ref HEAD)" == "$BRANCH_NAME" ]] || {
-    warn "$BRANCH_NAME branch not checked out ($(basename $(realpath .)))"
-    ask y "Run \`git checkout $BRANCH_NAME && git submodule update --recursive\` now?" &&
-      echocmd git checkout $BRANCH_NAME && echocmd git submodule update --recursive ||
+    warn "$BRANCH_NAME branch not checked out ($(basename "$(realpath .)"))"
+    { ask y "Run \`git checkout $BRANCH_NAME && git submodule update --recursive\` now?" &&
+       echocmd git checkout "$BRANCH_NAME" && echocmd git submodule update --recursive; } ||
       abort 0
   }
 
   echocmd git fetch "$REMOTE_NAME" "$BRANCH_NAME"
   if git merge-base --is-ancestor "$BRANCH_NAME" "$REMOTE_NAME/$BRANCH_NAME"; then
-    echocmd git merge --ff-only "$REMOTE_NAME"/$BRANCH_NAME
+    echocmd git merge --ff-only "$REMOTE_NAME"/"$BRANCH_NAME"
   else
     warn "$BRANCH_NAME and $REMOTE_NAME/$BRANCH_NAME have diverged."
-    ask n "Run \`git reset --hard $REMOTE_NAME/$BRANCH_NAME\` now?" &&
-      echocmd git reset --hard "$REMOTE_NAME/$BRANCH_NAME" ||
+    { ask n "Run \`git reset --hard $REMOTE_NAME/$BRANCH_NAME\` now?" &&
+      echocmd git reset --hard "$REMOTE_NAME/$BRANCH_NAME"; } ||
       abort 0
   fi
 }
@@ -181,7 +144,7 @@ check_ssh_remotes() {
 
   {
     $remote_cmd
-    git submodule foreach --quiet --recursive $remote_cmd 
+    git submodule foreach --quiet --recursive "$remote_cmd" 
   } | awk '/^https?:\/\// {print "  " $1; x=1} END {exit x}' || {
     warn "The above $REMOTE_NAME remotes seem not to use ssh."
     warn "$ME will attempt to directly push to these."
@@ -269,8 +232,8 @@ check_meta_consistency() {
   # Doing a nested loop rather than foreach --recursive as it's easier to get
   # both the path of service submod and the (potential) meta submod in one
   # iteration
-  while read mod; do
-    while read meta_name meta_path; do
+  while read -r mod; do
+    while read -r meta_name meta_path; do
       [[ "$meta_name" == 'openslides-meta' ]] ||
         continue
 
@@ -288,7 +251,7 @@ check_meta_consistency() {
       [[ -z "$meta_sha_last" ]] || [[ "$meta_sha" == "$meta_sha_last" ]] ||
         ret_code=1
       meta_sha_last="$meta_sha"
-    done <<< "$(git -C $mod submodule foreach -q 'echo "$name $sm_path"')"
+    done <<< "$(git -C "$mod" submodule foreach -q 'echo "$name $sm_path"')"
   done <<< "$(git submodule foreach -q 'echo "$sm_path"')"
 
   return $ret_code
@@ -306,7 +269,7 @@ check_go_consistency() {
     target_rev_at_str="(at $target_rev) "
   info "Checking openslides-go consistency $target_rev_at_str..."
 
-  while read mod_name mod_path; do
+  while read -r mod_name mod_path; do
     grep -q openslides-go "$mod_path/go.mod" 2>/dev/null ||
       continue
 
@@ -353,7 +316,11 @@ add_changes() {
     for mod in $(git submodule status | awk '$1 ~ "^\+" {print $2}'); do
       (
         set_remote
-        local target_sha= mod_sha_old= mod_sha_new= log_cmd= merge_base=
+        local target_sha=""
+        local mod_sha_old=""
+        local mod_sha_new=""
+        local log_cmd=""
+        local merge_base=""
         mod_sha_old="$(git diff --submodule=short "$mod" | awk '$1 ~ "^-Subproject" { print $3 }')"
         mod_sha_new="$(git diff --submodule=short "$mod" | awk '$1 ~ "^\+Subproject" { print $3 }')"
         log_cmd="git -C $mod log --oneline --no-decorate $mod_sha_old..$mod_sha_new"
@@ -398,7 +365,7 @@ choose_changes() {
 
   add_changes
 
-  check_meta_consistency && check_go_consistency || {
+  { check_meta_consistency && check_go_consistency; } || {
     warn "openslides-meta AND openslides-go have to be consistent across services."
     warn "Please rectify and rerun $ME"
     abort 1
@@ -414,7 +381,7 @@ commit_staged_changes() {
   [[ "$BRANCH_NAME" == stable/* ]] &&
     commit_message="Update $(cat VERSION) ($(date +%Y%m%d))"
   [[ $# == 0 ]] ||
-    commit_message="$@"
+    commit_message="$*"
 
   ask y "Commit on branch $BRANCH_NAME now?" && {
     echocmd git commit --message "$commit_message"
@@ -561,8 +528,8 @@ merge_stable_branch_meta() {
   # Doing a nested loop rather than foreach --recursive as it's easier to get
   # both the path of service submod and the (potential) meta submod in one
   # iteration
-  while read mod; do
-    while read meta_name meta_fullpath; do
+  while read -r mod; do
+    while read -r meta_name meta_fullpath; do
       [[ "$meta_name" == 'openslides-meta' ]] ||
         continue
 
@@ -577,7 +544,7 @@ merge_stable_branch_meta() {
       fi
 
       info ""
-    done <<< "$(git -C $mod submodule foreach -q 'echo "$name $toplevel/$sm_path"')"
+    done <<< "$(git -C "$mod" submodule foreach -q 'echo "$name $toplevel/$sm_path"')"
   done <<< "$(git submodule foreach -q 'echo "$sm_path"')"
 }
 
@@ -615,14 +582,14 @@ merge_stable_branch_services() {
     # Add previously stable-merged and pushed go
     if grep -q openslides-go "$service_mod/go.mod" 2>/dev/null; then
       go_url="$(awk '$1 ~ "/openslides-go" {print $1}' "$service_mod/go.mod")"
-      go_sha="$(git -C lib/openslides-go rev-parse $BRANCH_NAME)"
+      go_sha="$(git -C lib/openslides-go rev-parse "$BRANCH_NAME")"
       (
         info "Adding stable go for $service_mod"
         cd "$service_mod"
-        echocmd $GO get "$go_url@$go_sha"
-        echocmd $GO mod tidy
+        echocmd "$GO" get "$go_url@$go_sha"
+        echocmd "$GO" mod tidy
       )
-      echocmd git -C $service_mod add go.mod go.sum
+      echocmd git -C "$service_mod" add go.mod go.sum
     fi
 
     # Commit it all
@@ -672,8 +639,8 @@ make_stable_update() {
   ask y "Including these staging updates for the new stable update. Continue?" ||
     abort 0
 
-  check_meta_consistency "$REMOTE_NAME/$STAGING_BRANCH_NAME" &&
-    check_go_consistency "$REMOTE_NAME/$STAGING_BRANCH_NAME" || {
+  { check_meta_consistency "$REMOTE_NAME/$STAGING_BRANCH_NAME" &&
+    check_go_consistency "$REMOTE_NAME/$STAGING_BRANCH_NAME"; } || {
       error "openslides-meta OR openslides-go is not consistent at $target_sha."
       error "This is not acceptable for a stable update."
       error "Please fix this in a new staging update before trying again."
@@ -689,7 +656,7 @@ make_stable_update() {
   merge_stable_branch
   commit_staged_changes
 
-  check_meta_consistency && check_go_consistency || {
+  { check_meta_consistency && check_go_consistency; } || {
     error "Apparently merging $BRANCH_NAME went wrong and eit openslides-meta OR"
     error "openslides-go is not consistent anymore."
     error "You probably need to investigate what did go wrong."
@@ -701,8 +668,8 @@ make_stable_update() {
 }
 
 staging_log() {
-  echocmd git fetch -q $REMOTE_NAME $STAGING_BRANCH_NAME
-  git log --graph --oneline -U0 --submodule $REMOTE_NAME/$STABLE_BRANCH_NAME..$REMOTE_NAME/$STAGING_BRANCH_NAME | \
+  echocmd git fetch -q "$REMOTE_NAME" "$STAGING_BRANCH_NAME"
+  git log --graph --oneline -U0 --submodule "$REMOTE_NAME"/"$STABLE_BRANCH_NAME".."$REMOTE_NAME"/"$STAGING_BRANCH_NAME" | \
     awk -v version="$STAGING_VERSION" '
       /^\*.*Staging update [0-9]{8}/ { printf("\n# %s-staging-%s-%s\n", version, $NF, substr($2, 0, 7)) }
       /^\*/ { printf("  %s\n",$0) }
@@ -718,14 +685,14 @@ command -v awk > /dev/null || {
   error "'awk' not installed!"
   exit 1
 }
-command -v $GO > /dev/null || {
+command -v "$GO" > /dev/null || {
   error "'$GO' not installed!"
   exit 1
 }
 
 shortopt='phl'
 longopt='pull,help,local'
-ARGS=$(getopt -o "$shortopt" -l "$longopt" -n "$ME" -- $@)
+ARGS=$(getopt -o "$shortopt" -l "$longopt" -n "$ME" -- "$@")
 # reset $@ to args array sorted and validated by getopt
 eval set -- "$ARGS"
 unset ARGS

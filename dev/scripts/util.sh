@@ -44,7 +44,7 @@ echocmd() {
   (
   IFS=$' '
   echo "${COL_BLUE}$ $*${COL_NORMAL}" >&2
-  $*
+  eval "$*"
   return $?
   )
 }
