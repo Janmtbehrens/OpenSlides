@@ -54,18 +54,18 @@ list=$(while read -r author; do
     main=$(git log --since="$start_date" --numstat --pretty="%H" --author="^$author" |\
         grep -v -f <(IFS=$'\n'; echo "${exclude[*]}") |\
         awk 'NF==3 {plus+=$1; minus+=$2} END {printf("%d %d\n", plus, minus)}')
-    plus=$(( $(cut -d " " -f 1 <<< $submodules) + $(cut -d " " -f 1 <<< $main) ))
-    minus=$(( $(cut -d " " -f 2 <<< $submodules) + $(cut -d " " -f 2 <<< $main) ))
+    plus=$(( $(cut -d " " -f 1 <<< "$submodules") + $(cut -d " " -f 1 <<< "$main") ))
+    minus=$(( $(cut -d " " -f 2 <<< "$submodules") + $(cut -d " " -f 2 <<< "$main") ))
     total=$((plus + minus))
     echo " $total | $author | $plus | $minus"
-done <<< $(git submodule foreach --quiet git log --format='%aN' --since="$start_date" \
-    | sort -u | sed 's/\[bot\]//g'))
+done <<< "$(git submodule foreach --quiet git log --format='%aN' --since="$start_date" \
+    | sort -u | sed 's/\[bot\]//g')")
 
 # For authors who have several names...
 for m in "${merge_list[@]}"; do
-    list=$(merge_authors "$(cut -d ":" -f 1  <<< $m)" "$(cut -d ":" -f 2 <<< $m )")
+    list=$(merge_authors "$(cut -d ":" -f 1  <<< "$m")" "$(cut -d ":" -f 2 <<< "$m" )")
 done
 
 echo "All changed lines per author since $start_date:"
-printf "$list\n" | sort -nr | column --table-columns " TOTAL, AUTHOR, PLUS, MINUS" \
+printf "%s\n" "$list" | sort -nr | column --table-columns " TOTAL, AUTHOR, PLUS, MINUS" \
     --table-order " AUTHOR, TOTAL, PLUS, MINUS" -ts '|' -o '|'

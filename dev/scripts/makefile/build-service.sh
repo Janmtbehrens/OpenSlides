@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Import OpenSlides utils package
-. $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../util.sh
+. "$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/../util.sh"
 
 # Builds a single Submodule Service. This expects to be in the directory/subdirectory of the respective service
 
@@ -15,21 +15,21 @@ if [ -z "${SERVICE}" ]; then
 	exit 1
 fi
 
-if [ "${CONTEXT}" != "prod" -a "${CONTEXT}" != "dev" -a "${CONTEXT}" != "tests" ] ; then \
+if [ "${CONTEXT}" != "prod" ] && [ "${CONTEXT}" != "dev" ] && [ "${CONTEXT}" != "tests" ] ; then \
     error "Please provide a context for this build (bash build-service.sh <service-name> <desired_context> , possible options: prod, dev, tests)"; \
 	exit 1; \
 fi
 
-export TAG=openslides-${SERVICE}-
+export TAG=openslides-${SERVICE}
 export OPT_ARGS=
 
 if [ -n "${MODULE}" ]; then
-    export TAG=${TAG}${MODULE}-
+    export TAG=${TAG}-${MODULE}
     export OPT_ARGS="--build-arg MODULE=${MODULE} --build-arg PORT=${PORT}"
 fi
 
-export TAG=${TAG}${CONTEXT}
+if [ "${CONTEXT}" != "prod" ]; then export TAG="${TAG}-${CONTEXT}"; fi
 
 info "Building submodule '${SERVICE}' for ${CONTEXT} context"
 
-echocmd docker build -f ./Dockerfile ./ --tag ${TAG} --build-arg CONTEXT=${CONTEXT} --target ${CONTEXT} ${OPT_ARGS}
+echocmd docker build -f ./Dockerfile ./ --tag "${TAG}" --build-arg CONTEXT="${CONTEXT}" --target "${CONTEXT}" "${OPT_ARGS}"

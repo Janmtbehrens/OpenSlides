@@ -7,17 +7,17 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-COMMAND="$@"
+COMMAND="$*"
 
 IFS=$'\n'
 for DIR in $(git submodule foreach --recursive -q sh -c pwd); do
-    printf "\n\"${DIR}\": \"${COMMAND}\" started!\n" \
+    printf "\n\"%s\": \"%s\" started!\n" "${DIR}" "${COMMAND}"\
     && \
-    cd "$DIR" \
+    cd "$DIR" || exit 1 \
     && \
     eval "$COMMAND" \
     && \
-    printf "\"${DIR}\": \"${COMMAND}\" finished!\n" \
+    printf "\"%s\": \"%s\" finished!\n" "${DIR}" "${COMMAND}" \
     &
 done
 wait

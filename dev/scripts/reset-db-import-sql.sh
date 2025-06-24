@@ -2,10 +2,10 @@
 
 set -e
 
-DC="$(dirname $0)/dc-dev.sh"
+DC="$(dirname "$0")/dc-dev.sh"
 FILE="$1"
 
-[ -n "$FILE" -a -r "$FILE" ] || {
+{ [ -n "$FILE" ] && [ -r "$FILE" ]; } || {
   echo "ERROR: cannot read file $FILE"
   exit 1
 }
