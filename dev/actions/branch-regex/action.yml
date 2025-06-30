@@ -2,7 +2,7 @@ name: 'Current Branch Regex Check'
 description: 'Checks if current branch matches given regex.'
 
 inputs:
-  regex:  
+  regex:
     description: 'Regex pattern to be analysed'
     required: true
 outputs:

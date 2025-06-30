@@ -28,9 +28,9 @@ for DIR in $(git submodule foreach --recursive -q sh -c pwd); do
 
     # Execute test
     info "Testing service ${SUBMODULE}" && \
-    export ERROR_FOUND="" &&\
+    export ERROR_FOUND="" && \
     echocmd make "run-tests" || export ERROR_FOUND="1" && \
-    outputs[$SUBMODULE]="${?}${ERROR_FOUND}" 
+    outputs[$SUBMODULE]="${?}${ERROR_FOUND}"
 done
 
 for x in "${!outputs[@]}"; do
