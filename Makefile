@@ -18,7 +18,7 @@ build:
 	$(DOCKER_PATH)/build.sh
 
 # Development
-.SERVICE_TARGETS := auth autoupdate backend client datastore icc manage media proxy search vote
+.SERVICE_TARGETS := auth autoupdate backend client datastore icc manage media proxy projector search vote
 
 $(.SERVICE_TARGETS):
 	@echo ""

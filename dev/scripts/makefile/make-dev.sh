@@ -303,6 +303,7 @@ case "$SERVICE" in
                     USED_SHELL="bash" &&
                     if [ "$FUNCTION" = "attached" ]; then FUNCTION="media-attached"; fi ;; # Temporary fix for wait-for-it situation
     "proxy")        SERVICE_FOLDER="./openslides-proxy" ;;
+    "projector")    SERVICE_FOLDER="./openslides-projector-service" ;;
     "search")       SERVICE_FOLDER="./openslides-search-service" ;;
     "vote")         SERVICE_FOLDER="./openslides-vote-service" ;;
     "")             COMPOSE_FILE="dev/docker/docker-compose.dev.yml" ;;
