@@ -23,8 +23,6 @@ services:
       POSTGRES_USER: openslides
       POSTGRES_PASSWORD: openslides
       POSTGRES_DB: openslides
-    volumes:
-      - ./idp_setup.sql:/docker-entrypoint-initdb.d/idp_setup.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U openslides -d openslides"]
       interval: 5s
@@ -283,13 +281,26 @@ services:
         condition: service_started
     restart: "no"
 
+  zitadel-sql-init:
+    build:
+        context: ../../openslides-idp-service/sql
+    environment:
+      << : *default-environment
+      POSTGRES_USER: openslides
+      POSTGRES_PASSWORD: openslides
+      POSTGRES_DB: openslides
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
   zitadel-init:
     image: ghcr.io/zitadel/zitadel:v4.16.3
     command: ["init", "schema"]
     env_file: ../../openslides-idp-service/zitadel/default.env
     depends_on:
-      postgres:
-        condition: service_healthy
+      zitadel-sql-init:
+        condition: service_completed_successfully
 
   zitadel-setup:
     image: ghcr.io/zitadel/zitadel:v4.16.3
