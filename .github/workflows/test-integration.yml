@@ -26,7 +26,7 @@ jobs:
         run: cp example-data.json initial-data.json
 
       - name: Start setup
-        run: make localprod
+        run: make localprod-detached
 
       - name: Wait for dev setup
         uses: iFaxity/wait-on-action@v1.1.0
