@@ -14,7 +14,7 @@ build build-prod:
 	$(DOCKER_PATH)/build.sh
 
 # Development
-.SERVICE_TARGETS := auth autoupdate backend client icc media projector proxy search vote
+.SERVICE_TARGETS := auth autoupdate backend client icc media projector proxy search vote zitadel-api zitadel-login
 
 $(.SERVICE_TARGETS):
 	@echo ""
@@ -114,6 +114,10 @@ migrate-users-to-idp:
 
 run-psql:
 	@make dev-exec backend EXEC_COMMAND="make run-psql"
+
+## Debugging
+rebuild-zitadel-login:
+	bash $(MAKEFILE_PATH)/rebuild-zitadel-login.sh
 
 ########################## Deprecation List ##########################
 
