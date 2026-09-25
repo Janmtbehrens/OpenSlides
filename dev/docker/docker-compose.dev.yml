@@ -322,6 +322,7 @@ services:
     command: ["start", "--masterkeyFromEnv"]
     environment:
       << : [*default-environment]
+      AUTOUPDATE_URL: https://autoupdate:9012
     env_file: ../../openslides-idp-service/zitadel/default.env
     healthcheck:
       test:
@@ -339,12 +340,13 @@ services:
       - "8080:8080"
 
   zitadel-login:
-    image: ghcr.io/zitadel/zitadel-login:v4.16.3
+    image: zitadel/zitadel-login:local
     restart: unless-stopped
     user: "0"
     environment:
       << : [*default-environment]
       ZITADEL_API_URL: http://zitadel-api:8080
+      AUTOUPDATE_URL: https://autoupdate:9012
       NEXT_PUBLIC_BASE_PATH: /ui/v2/login
       ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
       CUSTOM_REQUEST_HEADERS: Host:localhost:8800,X-Forwarded-Proto:https

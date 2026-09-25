@@ -17,9 +17,9 @@ CUR="$(realpath $(dirname "$0"))"
     cd "$ZITADEL_PATH"/apps/login || exit 1
     pnpm install
     # Test compile time integrity before building
-    pnpm nx run @zitadel/login:test-unit --tuiAutoExit
+    pnpm nx run @zitadel/login:test-unit --tuiAutoExit --verbose
     # Build
-    pnpm nx run @zitadel/login:pack --tuiAutoExit
+    pnpm nx run @zitadel/login:pack --tuiAutoExit --verbose
     cd "$CUR/../../.." || exit 1
 }
 
