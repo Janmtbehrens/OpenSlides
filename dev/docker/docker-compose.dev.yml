@@ -350,6 +350,9 @@ services:
       NEXT_PUBLIC_BASE_PATH: /ui/v2/login
       ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
       CUSTOM_REQUEST_HEADERS: Host:localhost:8800,X-Forwarded-Proto:https
+      # Relevant for version 4.19.2^
+      # Signs the Login UI session cookie. At least 32 characters, e.g. `openssl rand -base64 32`.
+      ZITADEL_SESSION_COOKIE_SECRET: ${LOGIN_SESSION_COOKIE_SECRET}
     healthcheck:
       test:
         - CMD
