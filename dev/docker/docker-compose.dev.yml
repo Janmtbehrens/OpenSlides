@@ -1,4 +1,3 @@
-
 x-default-environment: &default-environment
   MESSAGE_BUS_HOST: redis
   CACHE_HOST: redis
@@ -13,13 +12,14 @@ x-default-environment: &default-environment
   IDP_EXTERNAL_HOST: localhost:8800
   IDP_URL_EXTERNAL: https://localhost:8800
   IDP_URL_INTERNAL: http://zitadel-api:8080
-  IDP_OS_REALM: openslides
+  IDP_ENABLE_ZITADEL: true
+  IDP_MANUAL_CLIENT_ID:
 
 services:
   postgres:
     image: postgres:17
     environment:
-      << : *default-environment
+      <<: *default-environment
       POSTGRES_USER: openslides
       POSTGRES_PASSWORD: openslides
       POSTGRES_DB: openslides
@@ -32,14 +32,14 @@ services:
 
   client:
     build:
-        context: ../../openslides-client
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-client
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-client-dev
     env_file: services.env
     environment:
-      << : *default-environment
+      <<: *default-environment
     volumes:
       - ../../openslides-client/client/src:/app/src
       - ../../openslides-client/client/cli:/app/cli
@@ -47,10 +47,10 @@ services:
 
   backend:
     build:
-        context: ../../openslides-backend
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-backend
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-backend-dev
     depends_on:
       idp-setup:
@@ -63,7 +63,7 @@ services:
       - "9003:9003"
       - "5678:5678"
     environment:
-      << : *default-environment
+      <<: *default-environment
       EMAIL_HOST: mailhog
       EMAIL_PORT: 1025
       # - EMAIL_HOST_USER username
@@ -88,16 +88,16 @@ services:
 
   autoupdate:
     build:
-        context: ../../openslides-autoupdate-service
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-autoupdate-service
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-autoupdate-dev
     depends_on:
       - redis
     env_file: services.env
     environment:
-      << : *default-environment
+      <<: *default-environment
       DATASTORE_TIMEOUT: 30
     volumes:
       - ../../openslides-autoupdate-service/internal:/app/openslides-autoupdate-service/internal
@@ -108,17 +108,17 @@ services:
 
   icc:
     build:
-        context: ../../openslides-icc-service
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-icc-service
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-icc-dev
     depends_on:
       - redis
       - auth
     env_file: services.env
     environment:
-      << : *default-environment
+      <<: *default-environment
     volumes:
       - ../../openslides-icc-service/internal:/app/openslides-icc-service/internal
       - ../../lib/openslides-go:/app/lib/openslides-go
@@ -128,10 +128,10 @@ services:
 
   search:
     build:
-        context: ../../openslides-search-service
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-search-service
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-search-dev
     depends_on:
       autoupdate:
@@ -142,7 +142,7 @@ services:
         condition: service_healthy
     env_file: services.env
     environment:
-      << : *default-environment
+      <<: *default-environment
     volumes:
       - ../../openslides-search-service/cmd:/app/openslides-search-service/cmd
       - ../../openslides-search-service/pkg:/app/openslides-search-service/pkg
@@ -153,10 +153,10 @@ services:
 
   projector:
     build:
-        context: ../../openslides-projector-service
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-projector-service
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-projector-dev
     depends_on:
       autoupdate:
@@ -181,10 +181,10 @@ services:
 
   media:
     build:
-        context: ../../openslides-media-service
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-media-service
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-media-dev
     depends_on:
       backend:
@@ -193,7 +193,7 @@ services:
         condition: service_healthy
     env_file: services.env
     environment:
-      << : *default-environment
+      <<: *default-environment
     volumes:
       - ../../openslides-media-service/src:/app/src
 
@@ -202,17 +202,17 @@ services:
     ports:
       - "6379:6379"
     environment:
-      << : *default-environment
+      <<: *default-environment
 
   proxy:
     build:
-        context: ../../openslides-proxy
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-proxy
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-proxy-dev
     environment:
-      << : *default-environment
+      <<: *default-environment
     depends_on:
       - client
       - backend
@@ -230,7 +230,7 @@ services:
   mailhog:
     image: mailhog/mailhog
     environment:
-      << : *default-environment
+      <<: *default-environment
     logging:
       driver: "none" # disable saving logs
     ports:
@@ -238,10 +238,10 @@ services:
 
   vote:
     build:
-        context: ../../openslides-vote-service
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-vote-service
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-vote-dev
     depends_on:
       redis:
@@ -252,7 +252,7 @@ services:
         condition: service_started
     env_file: services.env
     environment:
-      << : *default-environment
+      <<: *default-environment
       VOTE_DISABLE_LOG: true
     volumes:
       - ../../openslides-vote-service/vote:/app/openslides-vote-service/vote
@@ -263,17 +263,12 @@ services:
 
   idp-setup:
     build:
-        context: ../../openslides-idp-service
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-idp-service
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     environment:
-      << : [*default-environment]
-      ZITADEL_INTERNAL_URL: http://zitadel-api:8080
-      # Must match ZITADEL_EXTERNALDOMAIN:ZITADEL_EXTERNALPORT so that Zitadel
-      # can resolve the instance from the Host header on every API call.
-      # ZITADEL_REDIRECT_URI: ${ZITADEL_REDIRECT_URI:-https://localhost:8800/api/auth/callback}
-      # APP_REDIRECT_URL: ${APP_REDIRECT_URL:-https://localhost:8000}
+      <<: [*default-environment]
     volumes:
       - ../../openslides-idp-service/zitadel-bootstrap:/zitadel/bootstrap:rw
     depends_on:
@@ -283,16 +278,15 @@ services:
 
   zitadel-sql-init:
     build:
-        context: ../../openslides-idp-service/sql
+      context: ../../openslides-idp-service/sql
     environment:
-      << : *default-environment
+      <<: *default-environment
       POSTGRES_USER: openslides
       POSTGRES_PASSWORD: openslides
       POSTGRES_DB: openslides
     depends_on:
       postgres:
         condition: service_healthy
-
 
   zitadel-init:
     image: ghcr.io/zitadel/zitadel:v4.16.3
@@ -307,7 +301,7 @@ services:
     command: ["setup", "--masterkeyFromEnv"]
     user: "0"
     environment:
-      << : [*default-environment]
+      <<: [*default-environment]
     volumes:
       - ../../openslides-idp-service/zitadel-bootstrap:/zitadel/bootstrap:rw
     env_file:
@@ -321,7 +315,7 @@ services:
     image: ghcr.io/zitadel/zitadel:v4.16.3
     command: ["start", "--masterkeyFromEnv"]
     environment:
-      << : [*default-environment]
+      <<: [*default-environment]
       AUTOUPDATE_URL: https://autoupdate:9012
     env_file: ../../openslides-idp-service/zitadel/default.env
     healthcheck:
@@ -344,7 +338,7 @@ services:
     restart: unless-stopped
     user: "0"
     environment:
-      << : [*default-environment]
+      <<: [*default-environment]
       ZITADEL_API_URL: http://zitadel-api:8080
       AUTOUPDATE_URL: https://autoupdate:9012
       NEXT_PUBLIC_BASE_PATH: /ui/v2/login
@@ -372,16 +366,16 @@ services:
 
   auth:
     build:
-        context: ../../openslides-auth-service
-        target: "dev"
-        args:
-            CONTEXT: "dev"
+      context: ../../openslides-auth-service
+      target: "dev"
+      args:
+        CONTEXT: "dev"
     image: openslides-auth-dev
     depends_on:
       - redis
     env_file: services.env
     environment:
-      << : *default-environment
+      <<: *default-environment
     volumes:
       - ../../openslides-auth-service/auth/src:/app/src
       - ../../openslides-auth-service/auth/libraries:/app/libraries
